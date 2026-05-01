@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Виртуальный шоурум СКУД + УРВ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+
+      :root {
+        --lg-blue: #00b4d8;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        font-family: "Inter", system-ui, sans-serif;
+        background: #000;
+        touch-action: none;
+      }
+
+      #showroom-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: #000;
+        cursor: grab;
+      }
+
+      #image-wrapper {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transform-origin: 50% 50%;
+      }
+
+      #room-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        display: block;
+        user-select: none;
+      }
+
+      .hotspot {
+        position: absolute;
+        width: 68px;
+        height: 68px;
+        transform: translate(-50%, -50%);
+        cursor: pointer;
+        z-index: 30;
+        animation: lg-pulse 2s infinite ease-in-out;
+      }
+      .hotspot::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 28px;
+        height: 28px;
+        background: var(--lg-blue);
+        border: 4px solid rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 0 8px rgba(0, 180, 216, 0.4);
+      }
+      .hotspot:active::before {
+        transform: translate(-50%, -50%) scale(1.25);
+      }
+
+      .hotspot::after {
+        content: attr(data-number);
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        transform: translate(-50%, -50%);
+      }
+
+      .hotspot-label {
+        position: absolute;
+        top: -62px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(15, 23, 42, 0.95);
+        color: white;
+        padding: 8px 18px;
+        border-radius: 9999px;
+        font-size: 15px;
+        font-weight: 500;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s;
+      }
+      .hotspot:active .hotspot-label {
+        opacity: 1;
+        top: -72px;
+      }
+
+      .control-bar {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 9999px;
+        padding: 10px 18px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #111827;
+        backdrop-filter: blur(12px);
+      }
+
+      #product-modal {
+        animation: modalPop 0.3s ease;
+      }
+
+      @keyframes lg-pulse {
+        0%,
+        100% {
+          transform: translate(-50%, -50%) scale(1);
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.15);
+        }
+      }
+      @keyframes modalPop {
+        0% {
+          transform: scale(0.95);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="showroom-container">
+      <div id="image-wrapper">
+        <img
+          id="room-image"
+          src="https://alti-group.ru/upload/iblock/c52/pdq803q532cmnp2ceyuai8wnw98hniv3.jpg"
+          alt="Проходная с СКУД + УРВ"
+        />
+      </div>
+
+      <div class="control-bar text-base font-medium">
+        <div class="flex items-center gap-2">
+          <span
+            class="px-5 py-1 bg-[#00b4d8] text-white text-sm rounded-3xl font-semibold"
+            >СКУД + УРВ</span
+          >
+          <span class="text-[#00b4d8]">•</span>
+          <span>Биометрия и учёт рабочего времени</span>
+        </div>
+        <button
+          onclick="resetZoom()"
+          class="flex items-center gap-1 hover:text-[#00b4d8]"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div
+        class="absolute top-4 right-4 bg-white/95 text-gray-900 px-5 py-2.5 rounded-3xl shadow-xl flex items-center gap-3 text-sm font-semibold z-50"
+      >
+        <div class="w-3 h-3 bg-[#00b4d8] rounded-full animate-pulse"></div>
+        СКУД + УРВ
+      </div>
+    </div>
+
+    <div
+      id="product-modal"
+      onclick="if (event.target === this) hideModal();"
+      class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100]"
+    >
+      <div
+        class="modal bg-white rounded-3xl max-w-2xl w-full mx-4 overflow-hidden shadow-2xl"
+      >
+        <div class="p-10">
+          <div class="flex justify-between items-start mb-8">
+            <div class="flex-1">
+              <h2
+                id="modal-title"
+                class="text-3xl font-semibold text-gray-900"
+              ></h2>
+              <p
+                id="modal-description"
+                class="text-gray-600 mt-4 text-[17px] leading-relaxed"
+              ></p>
+            </div>
+            <button
+              onclick="hideModal()"
+              class="text-5xl leading-none text-gray-400 hover:text-gray-600"
+            >
+              ×
+            </button>
+          </div>
+          <div class="flex items-center justify-between mt-10">
+            <a
+              id="modal-link"
+              href="#"
+              target="_blank"
+              class="flex items-center justify-center gap-3 bg-[#00b4d8] hover:bg-[#0099c0] text-white text-lg font-semibold py-5 px-10 rounded-3xl transition-all"
+            >
+              Подробнее о решении
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-6 h-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="3"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M14 5l7 7-7 7"
+                />
+              </svg>
+            </a>
+            <button
+              onclick="hideModal()"
+              class="px-10 py-5 text-gray-500 hover:text-gray-700 font-medium text-lg"
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const markers = [
+        {
+          id: 1,
+          x: 25,
+          y: 48,
+          number: "1",
+          title: "ZKTeco SpeedFace M2",
+          description:
+            "Мультибиометрический терминал СКУД + УРВ (лицо + отпечаток + температура).",
+          link: "https://zkteco.pro",
+        },
+        {
+          id: 2,
+          x: 52,
+          y: 38,
+          number: "2",
+          title: "Hikvision DS-K1A340FX",
+          description: "Терминал распознавания лиц с интеграцией в СКУД и УРВ.",
+          link: "https://www.hikvision.com",
+        },
+        {
+          id: 3,
+          x: 52,
+          y: 78,
+          number: "3",
+          title: "Hikvision DS-K1A340FX",
+          description: "Терминал распознавания лиц с интеграцией в СКУД и УРВ.",
+          link: "https://www.hikvision.com",
+        },
+        {
+          id: 4,
+          x: 74,
+          y: 55,
+          number: "4",
+          title: "Suprema BioStation 2",
+          description: "Премиум-терминал по венам ладони.",
+          link: "#",
+        },
+        {
+          id: 5,
+          x: 40,
+          y: 60,
+          number: "5",
+          title: "ZKTeco PA22 + УРВ",
+          description:
+            "Биометрический терминал по венам ладони + учёт рабочего времени.",
+          link: "https://zkteco.pro",
+        },
+      ];
+
+      let currentScale = 2.3; // стартовый зум 230%
+      let translateX = 0,
+        translateY = 0;
+      let isDragging = false;
+      let startX, startY;
+      let initialDistance = 0;
+
+      function createHotspots() {
+        const wrapper = document.getElementById("image-wrapper");
+        markers.forEach((m) => {
+          const hotspot = document.createElement("div");
+          hotspot.className = "hotspot";
+          hotspot.style.left = `${m.x}%`;
+          hotspot.style.top = `${m.y}%`;
+          hotspot.setAttribute("data-number", m.number);
+
+          const label = document.createElement("div");
+          label.className = "hotspot-label";
+          label.textContent = m.title;
+          hotspot.appendChild(label);
+
+          hotspot.addEventListener("click", (e) => {
+            e.stopImmediatePropagation();
+            showProductModal(m);
+          });
+          wrapper.appendChild(hotspot);
+        });
+      }
+
+      function showProductModal(marker) {
+        document.getElementById("modal-title").textContent = marker.title;
+        document.getElementById("modal-description").textContent =
+          marker.description;
+        document.getElementById("modal-link").href = marker.link;
+        const modal = document.getElementById("product-modal");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      }
+
+      function hideModal() {
+        const modal = document.getElementById("product-modal");
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+
+      function resetZoom() {
+        currentScale = 2.3;
+        translateX = 0;
+        translateY = 0;
+        applyTransform();
+      }
+
+      function applyTransform() {
+        const rect = document
+          .getElementById("showroom-container")
+          .getBoundingClientRect();
+        const scaledW = rect.width * currentScale;
+        const scaledH = rect.height * currentScale;
+        const maxX = Math.max(0, (scaledW - rect.width) / 2);
+        const maxY = Math.max(0, (scaledH - rect.height) / 2);
+
+        translateX = Math.max(-maxX, Math.min(maxX, translateX));
+        translateY = Math.max(-maxY, Math.min(maxY, translateY));
+
+        document.getElementById("image-wrapper").style.transform =
+          `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
+      }
+
+      function enableTouchAndZoom() {
+        const container = document.getElementById("showroom-container");
+
+        container.addEventListener("touchstart", (e) => {
+          if (e.target.classList.contains("hotspot")) return;
+
+          if (e.touches.length === 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX - translateX;
+            startY = e.touches[0].clientY - translateY;
+          } else if (e.touches.length === 2) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            initialDistance = Math.sqrt(dx * dx + dy * dy);
+          }
+        });
+
+        container.addEventListener("touchmove", (e) => {
+          e.preventDefault();
+
+          if (e.touches.length === 1 && isDragging) {
+            translateX = e.touches[0].clientX - startX;
+            translateY = e.touches[0].clientY - startY;
+            applyTransform();
+          } else if (e.touches.length === 2 && initialDistance > 0) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const currentDistance = Math.sqrt(dx * dx + dy * dy);
+
+            const scaleFactor = currentDistance / initialDistance;
+            const oldScale = currentScale;
+            currentScale = Math.max(1.0, currentScale * scaleFactor);
+
+            const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            const rect = container.getBoundingClientRect();
+
+            translateX =
+              (translateX + centerX - rect.left) * (currentScale / oldScale) -
+              (centerX - rect.left);
+            translateY =
+              (translateY + centerY - rect.top) * (currentScale / oldScale) -
+              (centerY - rect.top);
+
+            applyTransform();
+            initialDistance = currentDistance;
+          }
+        });
+
+        container.addEventListener("touchend", () => {
+          isDragging = false;
+          initialDistance = 0;
+        });
+
+        // Десктоп (мышь + колёсико)
+        container.addEventListener("wheel", (e) => {
+          e.preventDefault();
+          const delta = e.deltaY > 0 ? 0.92 : 1.08;
+          const oldScale = currentScale;
+          currentScale = Math.max(1.0, currentScale * delta);
+
+          const rect = container.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+
+          translateX =
+            (translateX + mouseX) * (currentScale / oldScale) - mouseX;
+          translateY =
+            (translateY + mouseY) * (currentScale / oldScale) - mouseY;
+          applyTransform();
+        });
+
+        container.addEventListener("mousedown", (e) => {
+          if (e.target.classList.contains("hotspot")) return;
+          isDragging = true;
+          startX = e.clientX - translateX;
+          startY = e.clientY - translateY;
+          container.style.cursor = "grabbing";
+        });
+
+        window.addEventListener("mousemove", (e) => {
+          if (!isDragging) return;
+          translateX = e.clientX - startX;
+          translateY = e.clientY - startY;
+          applyTransform();
+        });
+
+        window.addEventListener("mouseup", () => {
+          isDragging = false;
+          container.style.cursor = "grab";
+        });
+      }
+
+      window.onload = () => {
+        createHotspots();
+        enableTouchAndZoom();
+        applyTransform(); // сразу 230% зум
+      };
+    </script>
+  </body>
+</html>
